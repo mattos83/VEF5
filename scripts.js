@@ -1,139 +1,96 @@
-const ENTER_KEYCODE = 13;
+// const API_URL = '/example.json?domain=';
+const API_URL = 'https://apis.is/isnic?domain=';
 
 document.addEventListener('DOMContentLoaded', () => {
-  const form = document.querySelector('.form');
-  const items = document.querySelector('.items');
-  
- 
+    const domains = document.querySelector('.domains');
 
-  text.init(form, items);
-});
+    program.init(domains);
+  });
 
-const text = (() => {
-  let items;  
+/**
+ * Leit að lénum á Íslandi gegnum apis.is
+ */
+const program = (() => {
+  let domains;
 
-  function init(_form, _items) {
-    items = _items;
+  function displayDomain(domainsList){
 
-    _form.addEventListener('submit', formHandler); 
+    if(domainsList.length == 0){
 
-    let allCheckboxes = items.querySelectorAll('.item__checkbox');
-    //alert("allCheckboxes length is " + allCheckboxes.length);
-    for (let i = 0; i < allCheckboxes.length; i++) {
-      allCheckboxes[i].addEventListener('change', finish);
-    }
-
-    let allButtons = document.querySelectorAll('.item__button');
-    for (let i = 0; i < allButtons.length; i++) {
-    	allButtons[i].addEventListener('click', deleteItem);
-    }
-
-    let allTexts = document.querySelectorAll('.item__text');
-    for (let i = 0; i < allTexts.length; i++) {
-    	allTexts[i].addEventListener('click', edit);
-    }
-    
-    // TODO láta hluti í _items virka
-  }
-
-  function formHandler(e) {
-    // Verður að vera eitthvað í textaboxinu
-    const inputText = document.querySelector('.form__input');
-    if(inputText.value == "")
-    {
+        displayError('Fann ekki slóð');
         return;
     }
- 
-  let newLi = document.createElement("li");
-  newLi.classList.add("item");
- 
-  let checkbox = document.createElement("INPUT");
-  checkbox.setAttribute("type", "checkbox");
-  checkbox.classList.add("item__checkbox");
-  checkbox.addEventListener('change', finish);
-  newLi.appendChild(checkbox); 
- 
-  let span = document.createElement('SPAN');
-  span.innerHTML = inputText.value;
-  // Heinsum textaboxið
-  inputText.value = "";
-  span.classList.add("item__text");
-  newLi.appendChild(span);
- 
-  let button = document.createElement("BUTTON");
-  button.setAttribute("type", "button");
-  button.appendChild(document.createTextNode("Eyða"));
-  button.classList.add("form__button");
-  button.addEventListener('click', deleteItem);
-  newLi.appendChild(button);
- 
-  const items = document.querySelector('.items');
-  items.appendChild(newLi);
 
-    e.preventDefault();
+    const [{address}] = domainsList;
+
+    const dl = document.createElement('dl');
     
-   // console.log('halló heimur');
-  }
+    const addressElement = document.createElement('dt');
+    addressElement.appendChild(document.createTextNode('Address:'));
+    dl.appendChild(addressElement);
 
-  // event handler fyrir það að klára færslu
-  function finish(e) {      
+    const addressValueElement = document.createElement('dd');
+    addressValueElement.appendChild(document.createTextNode(address));
+    dl.appendChild(addressValueElement);
+
     
-    //    alert('finish clicked : ' + e.currentTarget.parentNode.nodeName);
-    e.currentTarget.parentNode.classList.toggle("item--done");
-    e.preventDefault(); 
-  }
 
-  // event handler fyrir það að breyta færslu
-  function edit(e) { 
+    const container = domains.querySelector('.results');
 
-    var text = e.target.innerHTML;
-    //alert("text is " + e.target.innerHTML);
-    //alert('edit clicked : ' + e.currentTarget.nodeName);
- 
-    if(e.currentTarget.nodeName == "SPAN")
-    {
-        // current element is a span, we need to replace it with INPUT
- 
-        var inputbox = document.createElement("INPUT");
-        inputbox.setAttribute("type", "text");
-        inputbox.setAttribute("value", e.target.innerHTML);
-        inputbox.classList.add("form__input");
-        e.currentTarget.replaceWith(inputbox);
-        inputbox.focus();
-        inputbox.addEventListener('focusout', edit);
+    while(container.firstChild){
+        container.removeChild(container.firstChild);
     }
-    else if (e.currentTarget.nodeName == "INPUT")
-    {
-        // current element is an input, we need to replace it with SPAN
-        var span = document.createElement('SPAN');
-        span.innerHTML = e.target.value;
-        span.classList.add("item__text");
-        e.currentTarget.replaceWith(span);
-        span.addEventListener('click', edit);  
-      }
-
+    container.appendChild(dl);
   }
 
-  // event handler fyrir það að klára að breyta færslu
-  function commit(e) {
+  function displayError(error){
+
+    const container = domains.querySelector('.results');
+
+    while(container.firstChild){
+        container.removeChild(container.firstChild);
+    }
+
+    container.appendChild(document.createTextNode(error));
   }
 
-  // fall sem sér um að bæta við nýju item
-  function add(value) {
+  function fetchData(dom){
+
+    fetch(`${API_URL}${dom}`)
+    .then((response)=>{
+        if(response.ok){
+            return response.json();
+        }
+        throw new Error('Villa');
+    })
+    .then((data)=>{
+        displayDomain(data.results);
+        console.log(data);
+    })
+    .catch((error)=>{
+        displayError('Villa!');
+        console.error(error);
+    })
   }
 
-  // event handler til að eyða færslu
-  function deleteItem(e) {
-    e.currentTarget.parentNode.remove(); 
+  function onSubmit(e){
+      e.preventDefault();
+      const input = e.target.querySelector('input');
+      console.log(input.value);
+
+      fetchData(input.value);
   }
 
-  // hjálparfall til að útbúa element
-  function el(type, className, clickHandler) {
+  function init(_domains) {
+    domains = _domains;
 
-      
+    const form = domains.querySelector('form');
+    form.addEventListener('submit', onSubmit) ;
+
   }
 
   return {
-    init: init
-  }
+    init,
+  };
 })();
+
